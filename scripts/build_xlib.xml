@@ -1,0 +1,128 @@
+<!-- build_xlib.xml
+
+Description:
+	This ANT script constructs <project root>/xlib.
+
+	To use this script, you must update properties is <project root>/scripts/build.properties or overide 
+	them from commandline (using -D option). For example:
+		
+		set PATH=C:\depot\external\apache-ant\apache-ant-1.8.4\bin;%PATH%
+		ant -XX:MaxPermSize=512m -Dnlbuildroot=C:/depot/PolicyStudio/dev/BuildScript_1205 -Dexternal.dir=c:/depot/external -Dnlexternaldir=c:/depot/external -f scripts/build_xlib.xml
+		
+	or
+		
+		set PATH=C:\depot\external\apache-ant\apache-ant-1.8.4\bin;%PATH%
+		set ANT_OPTS=-XX:MaxPermSize=512m -Dnlbuildroot=%NLBUILDROOT% -Dexternal.dir=%NLEXTERNALDIR% -Dnlexternaldir=%NLEXTERNALDIR% 
+		ant -f scripts/build_xlib.xml -v	
+-->
+
+<project name="build_xlib" default="all" basedir=".">
+
+	<!-- Debug 
+	<echoproperties />
+	<fail message="INFO: Debug" />
+	-->
+
+	<!-- Property files -->
+	<property file="${basedir}/build.properties" />
+
+	<!-- Global properties -->
+	<property name="xlib_dir" location="${nlbuildroot}/xlib" />
+	<property name="xlib_jar_dir" value="${xlib_dir}/jar" />
+	<property name="java_sdk_dir" location="${xlib_jar_dir}/sapjavasdk/jservice" />
+
+	<!-- TBD: psexternaldir is a temporary variable. It will be removed with all files 
+		under lib are extracted automatically from build artifacts. -->
+	<property name="psexternaldir" location="${nlbuildroot}/lib" />
+
+	<!-- Dump properties -->
+	<echoproperties />
+
+	<echo message="INFO: Dump properties completed" />
+
+	<!-- Sanity checks -->
+	<fail message="nlbuildroot is not set" unless="nlbuildroot" />
+	<fail message="nlbuildroot is empty">
+		<condition>
+			<equals arg1="${nlbuildroot}" arg2="" trim="true" />
+		</condition>
+	</fail>
+	<available file="${nlbuildroot}" type="dir" property="local.nlbuildroot_exists" />
+	<fail message="nlbuildroot directory does not exist - ${nlbuildroot}" unless="local.nlbuildroot_exists" />
+
+	<fail message="nlexternaldir is not set" unless="nlexternaldir" />
+	<fail message="nlexternaldir is empty">
+		<condition>
+			<equals arg1="${nlexternaldir}" arg2="" trim="true" />
+		</condition>
+	</fail>
+	<available file="${nlexternaldir}" type="dir" property="local.nlexternaldir_exists" />
+	<fail message="nlexternaldir directory does not exist - ${nlexternaldir}" unless="local.nlexternaldir_exists" />
+	
+	<echo message="INFO: Sanity check completed (no error)" />
+
+	<!-- Targets -->
+	<target name="all" depends="clean, prepare_external_jar, prepare_destiny_jar, prepare_sapjavasdk_jar, prepare_sdk_jar" />
+
+	<target name="prepare_external_jar">
+		<mkdir dir="${xlib_jar_dir}" />
+		<copy file="${nlexternaldir}/commons-logging/commons-logging-1.1.1/commons-logging-1.1.1.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" verbose="true" />
+		<copy file="${nlexternaldir}/ehcache/ehcache-1.1/ehcache-1.1.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" verbose="true" />
+	</target>
+
+	<target name="prepare_destiny_jar">
+
+		<copy file="${nlexternaldir}/jsf/jsf-1_1_01/lib/commons-logging.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" verbose="true" />
+		<unzip src="${xlib_destiny_build_artifacts_zip_file}" dest="${xlib_jar_dir}" overwrite="yes">
+			<patternset>
+				<include name="agent/lib/common-pf.jar" />
+				<include name="agent/lib/common-framework-types.jar" />
+				<include name="agent/lib/common-framework.jar" />
+				<include name="agent/lib/agent-controlmanager.jar" />
+				<include name="agent/lib/crypt.jar" />
+			</patternset>
+			<mapper type="flatten" />
+		</unzip>
+
+		<move file="${xlib_jar_dir}/common-pf.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" />
+		<move file="${xlib_jar_dir}/common-framework-types.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" />
+		<move file="${xlib_jar_dir}/common-framework.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" />
+		<move file="${xlib_jar_dir}/agent-controlmanager.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" />
+		<move file="${xlib_jar_dir}/crypt.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" />
+	</target>
+
+	<target name="prepare_sapjavasdk_jar">
+		<copy todir="${xlib_dir}" preservelastmodified="true" overwrite="false" verbose="true">
+			<fileset dir="${nlexternaldir}/sapjco/3.0.11">
+				<include name="**/*.*" />
+			</fileset>
+			<fileset dir="${nlexternaldir}/sapjco/3.0.17">
+				<include name="**/*.*" />
+			</fileset>
+		</copy>
+	</target>
+
+	<target name="prepare_sdk_jar">
+		<!-- NOTHING TO DO - WE ARE REMOVING NLJAVASDK2.JAR DEPENDENCY -->
+
+		<!--
+		<mkdir dir="${xlib_jar_dir}" />
+		<mkdir dir="${java_sdk_dir}" />
+		<unzip src="${xlib_policy_adaptor_sdk_zip_file}" dest="${java_sdk_dir}/jar/sapjavasdk" overwrite="yes">
+			<patternset>
+				<include name="**/nlJavaSDK2.jar" />
+			</patternset>
+			<mapper type="flatten" />
+		</unzip>
+		<copy file="${java_sdk_dir}/jar/sapjavasdk/nlJavaSDK2.jar" todir="${xlib_jar_dir}"/>
+		<move file="${xlib_jar_dir}/nlJavaSDK2.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" />
+		<copy file="${nlbuildroot}/lib/SAPJavaSDKService.properties" todir="${java_sdk_dir}/config" />
+		-->
+	</target>
+
+
+	<target name="clean">
+		<delete dir="${xlib_dir}" />
+	</target>
+</project>
+
